@@ -3,11 +3,43 @@ const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 //const Bcrypt = require("bcryptjs");
 const port = 5000
-
+const multer =require("multer");
 const pusher = require('pusher');
-
-// Create express app
 const app = express();
+
+const fileFilter=(req,file,cb)=>{
+const allowedTypes=['image/jpeg',"image/jpg","image/png"];
+if(!allowedTypes.includes(file.mimetype)){
+  const error=new Error("incorrect file");
+  error.code="incorrect_filetype";
+  returncb(error,false)
+}
+cb(null,true);
+}
+const multiupload =multer({dest:'./multiupload',
+fileFilter,
+limits:{
+  filesize:5000000
+}
+});
+app.post('/multiupload',multiupload.single('file'),(req,res)=>{
+  res.json({file:'uploaded file'});
+});
+
+app.use((err,req,res,next)=>{
+  if(err.code==="incorrect_filetype"){
+    res.status(422).json({error:'only images are allowed'});
+    return;
+  }
+});
+app.use((err, req, res, next)=>{
+  if(err.code==="limit_file_size"){
+    res.status(422).json({error:"allowed file size is 500kb"});
+    return;
+  }
+});
+// Create express app
+
 // Parse requests of content-type - application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: true }))
 // Parse requests of content-type - application/json
@@ -107,6 +139,8 @@ app.get('/accountsUserList', (req, res) => {
   });
 
 });
+
+//uploading files
 
 //ADDING PROVIDERS TO DB
 app.post('/accountsProvider', (req, res) => {
